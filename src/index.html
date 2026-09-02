@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Backgammon | Ultra HD Edition</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .game-container {
+            position: relative;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+            border-radius: 16px;
+            padding: 12px;
+            background: #111827;
+            border: 2px solid #334155;
+        }
+        canvas { display: block; border-radius: 8px; background: #090d16; }
+        .hud {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .hud span {
+            color: #f8fafc;
+            background: #1e293b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+        }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <div>SIRA: <span id="turnIndicator">BEYAZ</span></div>
+        <div>ZARLAR: <span id="diceIndicator">- , -</span></div>
+        <div>BEYAZ PİP: <span id="whitePip">167</span></div>
+        <div>SİYAH PİP: <span id="blackPip">167</span></div>
+    </div>
+    <div class="game-container">
+        <canvas id="boardCanvas"></canvas>
+    </div>
+    <script>
+        const canvas = document.getElementById('boardCanvas');
+        const ctx = canvas.getContext('2d');
+        const BASE_WIDTH = 1200, BASE_HEIGHT = 800;
+
+        function initCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = BASE_WIDTH * dpr;
+            canvas.height = BASE_HEIGHT * dpr;
+            canvas.style.width = `${BASE_WIDTH * 0.85}px`;
+            canvas.style.height = `${BASE_HEIGHT * 0.85}px`;
+            ctx.scale(dpr, dpr);
+        }
+
+        function render() {
+            ctx.fillStyle = '#1c120c';
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(10, 10, BASE_WIDTH - 20, BASE_HEIGHT - 20);
+        }
+
+        initCanvas();
+        render();
+    </script>
+</body>
+</html>
