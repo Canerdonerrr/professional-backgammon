@@ -59,8 +59,8 @@
             cursor: pointer;
         }
         .btn:active { background: #2ea043; }
-        #status { font-size: 14px; font-weight: 500; color: #8b949e; }
-        #dice-display { font-size: 18px; font-weight: bold; color: #58a6ff; letter-spacing: 2px; }
+        #status { font-size: 13px; font-weight: 500; color: #8b949e; text-align: right; }
+        #dice-display { font-size: 16px; font-weight: bold; color: #58a6ff; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
         <div id="ui-panel">
             <button class="btn" id="rollBtn">Zar At</button>
             <div id="dice-display">- -</div>
-            <div id="status">Sıra: Beyaz</div>
+            <div id="status">Önce Zar Atın</div>
         </div>
         <canvas id="backgammonCanvas" width="900" height="1300"></canvas>
     </div>
@@ -80,14 +80,13 @@
         const diceEl = document.getElementById('dice-display');
         const rollBtn = document.getElementById('rollBtn');
 
-        // Basitleştirilmiş tavla state (24 hane, index 0-23)
-        // Pozitif: Beyaz, Negatif: Siyah pullar
+        // 24 hane (0 - 23). Pozitif: Beyaz, Negatif: Siyah
         let board = new Array(24).fill(0);
-        // Standart başlangıç dizilimi
-        board[0] = -2;  board[5] = 5;   board[7] = 3;   board[11] = -5;
-        board[12] = 5;  board[16] = -3; board[18] = -5; board[23] = 2;
+        // Standart Tavla Yerleşimi
+        board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
+        board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
 
-        let turn = 'white'; // 'white' veya 'black'
+        let turn = 'white'; // 'white' (pozitif) veya 'black' (negatif)
         let dice = [];
         let selectedPoint = null;
 
@@ -108,7 +107,6 @@
 
             for (let i = 0; i < 12; i++) {
                 let x = i < 6 ? 40 + i * triWidth : 480 + (i - 6) * triWidth;
-                let topDown = true;
                 let c1 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
                 let c2 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
                 let color = i < 6 ? c1 : c2;
@@ -137,35 +135,44 @@
                 ctx.fill();
             }
 
-            // Pulları Çiz
             drawCheckers();
         }
 
+        function getPointCoords(i) {
+            let x, yBase, isTop = i < 12;
+            if (i < 6) {
+                x = 40 + i * 63.3 + 31.6;
+                yBase = isTop ? 70 : 1230;
+            } else if (i < 12) {
+                x = 480 + (i - 6) * 63.3 + 31.6;
+                yBase = isTop ? 70 : 1230;
+            } else if (i < 18) {
+                x = 480 + (17 - i) * 63.3 + 31.6;
+                yBase = isTop ? 70 : 1230;
+            } else {
+                x = 40 + (23 - i) * 63.3 + 31.6;
+                yBase = isTop ? 70 : 1230;
+            }
+            return { x, yBase, isTop };
+        }
+
         function drawCheckers() {
-            // Hane koordinat haritalaması (0'dan 23'e)
-            // Detaylı pulları hanelere yerleştirme
             for (let i = 0; i < 24; i++) {
                 let count = board[i];
                 if (count === 0) continue;
 
-                let isTop = i < 12;
-                let xIdx = i < 6 ? i : (i < 12 ? i : (i < 18 ? 17 - i : 23 - i));
-                // Basitleştirilmiş örnek görselleştirme konumu
-                let x = 40 + (i % 6) * 63.3 + 31.6;
-                if (i >= 6 && i < 12) x = 480 + ((i - 6) % 6) * 63.3 + 31.6;
-                if (i >= 12 && i < 18) x = 480 + (5 - (i - 12)) * 63.3 + 31.6;
-                if (i >= 18) x = 40 + (5 - (i - 18)) * 63.3 + 31.6;
-
+                let coords = getPointCoords(i);
                 let absCount = Math.abs(count);
+
                 for (let j = 0; j < Math.min(absCount, 5); j++) {
-                    let y = isTop ? (70 + j * 55) : (1230 - j * 55);
+                    let y = coords.isTop ? (coords.yBase + j * 55) : (coords.yBase - j * 55);
                     
                     ctx.beginPath();
-                    ctx.arc(x, y, 26, 0, Math.PI * 2);
+                    ctx.arc(coords.x, y, 26, 0, Math.PI * 2);
                     ctx.fillStyle = count > 0 ? '#f5f5f5' : '#1a1a1a';
                     ctx.fill();
                     ctx.lineWidth = 3;
-                    ctx.strokeStyle = count > 0 ? '#d4d4d4' : '#444';
+                    ctx.strokeStyle = (selectedPoint === i) ? '#58a6ff' : (count > 0 ? '#d4d4d4' : '#444');
                     ctx.stroke();
                 }
             }
@@ -176,7 +183,70 @@
             let d2 = Math.floor(Math.random() * 6) + 1;
             dice = d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
             diceEl.textContent = dice.join(' - ');
-            statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'} (Oyna)`;
+            statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}`;
+        });
+
+        // Dokunma / Tıklama ile Pulları Seçme ve Taşıma
+        canvas.addEventListener('click', (e) => {
+            if (dice.length === 0) {
+                statusEl.textContent = "Önce Zar Atın!";
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            // Hangi haneye tıklandığını bul
+            let clickedPoint = -1;
+            for (let i = 0; i < 24; i++) {
+                let coords = getPointCoords(i);
+                if (Math.abs(clickX - coords.x) < 32) {
+                    clickedPoint = i;
+                    break;
+                }
+            }
+
+            if (clickedPoint === -1) return;
+
+            if (selectedPoint === null) {
+                // Pul seç
+                if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
+                    selectedPoint = clickedPoint;
+                    statusEl.textContent = `Seçilen hane: ${clickedPoint + 1}. Hedef seçin.`;
+                }
+            } else {
+                // Hamle yapma kontrolü (Basitleştirilmiş mesafe kontrolü)
+                let diff = turn === 'white' ? (clickedPoint - selectedPoint) : (selectedPoint - clickedPoint);
+                
+                if (dice.includes(diff)) {
+                    // Pulları hareket ettir
+                    if (turn === 'white') {
+                        board[selectedPoint]--;
+                        board[clickedPoint]++;
+                    } else {
+                        board[selectedPoint]++;
+                        board[clickedPoint]--;
+                    }
+                    // Kullanılan zarı sil
+                    let idx = dice.indexOf(diff);
+                    dice.splice(idx, 1);
+                    diceEl.textContent = dice.length > 0 ? dice.join(' - ') : '- -';
+                    
+                    if (dice.length === 0) {
+                        turn = turn === 'white' ? 'black' : 'white';
+                        statusEl.textContent = `Sıra değişti: ${turn === 'white' ? 'Beyaz' : 'Siyah'}. Zar atın.`;
+                    } else {
+                        statusEl.textContent = `Hamle başarılı. Kalan zar: ${dice.join(', ')}`;
+                    }
+                } else {
+                    statusEl.textContent = "Geçersiz hamle (Zar uymuyor)!";
+                }
+                selectedPoint = null;
+            }
+            drawBoard();
         });
 
         drawBoard();
