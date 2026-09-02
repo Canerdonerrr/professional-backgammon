@@ -58,6 +58,14 @@
         const ctx = canvas.getContext('2d');
         const BASE_WIDTH = 1200, BASE_HEIGHT = 800;
 
+        // 24 haneli tahta dizilimi (Pozitif: Beyaz, Negatif: Siyah)
+        const boardState = [
+             2,  0,  0,  0,  0, -5,  // 1 - 6
+             0, -3,  0,  0,  0,  5,  // 7 - 12
+            -5,  0,  0,  0,  3,  0,  // 13 - 18
+             5,  0,  0,  0,  0, -2   // 19 - 24
+        ];
+
         function initCanvas() {
             const dpr = window.devicePixelRatio || 1;
             canvas.width = BASE_WIDTH * dpr;
@@ -88,7 +96,7 @@
 
             for (let i = 0; i < 12; i++) {
                 let x = 40 + i * triangleWidth;
-                if (i >= 6) x += 80; // Orta bar boşluğu
+                if (i >= 6) x += 80;
 
                 // Üst sıra
                 ctx.fillStyle = (i % 2 === 0) ? '#4a3319' : '#e6d5b8';
@@ -110,9 +118,74 @@
             }
         }
 
+        function drawCheckers() {
+            const triangleWidth = 76;
+            const radius = 32;
+
+            boardState.forEach((count, index) => {
+                if (count === 0) return;
+
+                let col, row, x, y;
+                const isTop = index >= 12;
+
+                if (isTop) {
+                    // Üst yarı (12 ila 23 indexleri)
+                    let realIndex = index - 12; // 0'dan 11'e
+                    col = realIndex;
+                    x = 40 + col * triangleWidth + triangleWidth / 2;
+                    if (col >= 6) x += 80;
+
+                    for (let j = 0; j < Math.abs(count); j++) {
+                        y = 20 + radius + j * (radius * 1.6);
+                        renderSingleChecker(x, y, count > 0 ? 'white' : 'black', radius);
+                    }
+                } else {
+                    // Alt yarı (0 ila 11 indexleri)
+                    let realIndex = 11 - index; // Sağdan sola dizilim için
+                    col = realIndex;
+                    x = 40 + col * triangleWidth + triangleWidth / 2;
+                    if (col >= 6) x += 80;
+
+                    for (let j = 0; j < Math.abs(count); j++) {
+                        y = BASE_HEIGHT - 20 - radius - j * (radius * 1.6);
+                        renderSingleChecker(x, y, count > 0 ? 'white' : 'black', radius);
+                    }
+                }
+            });
+        }
+
+        function renderSingleChecker(x, y, color, radius) {
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            
+            // Profesyonel Gradyan Dolgu
+            let grad = ctx.createRadialGradient(x - 8, y - 8, 5, x, y, radius);
+            if (color === 'white') {
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(1, '#cbd5e1');
+            } else {
+                grad.addColorStop(0, '#334155');
+                grad.addColorStop(1, '#0f172a');
+            }
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            ctx.strokeStyle = color === 'white' ? '#94a3b8' : '#1e293b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+        }
+
         function render() {
             ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             drawBoard();
+            drawCheckers();
         }
 
         initCanvas();
