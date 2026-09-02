@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: #06090f;
+            background-color: #0b0f19;
             color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
@@ -21,21 +21,21 @@
         #game-container {
             width: 100vw;
             height: 100vh;
-            max-width: 500px;
+            max-width: 480px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 8px 0;
         }
         canvas {
             width: 100%;
-            height: 77vh;
-            object-fit: contain;
-            background: #150b06;
-            box-shadow: 0 12px 35px rgba(0,0,0,0.95);
+            max-height: 78vh;
+            aspect-ratio: 900 / 1300;
+            background: #1a0f08;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
             border-radius: 8px;
-            border: 2px solid #3a2212;
+            border: 2px solid #4a2511;
             cursor: pointer;
         }
         #ui-panel {
@@ -87,36 +87,23 @@
         let audioCtx = null;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
         function playSound(type) {
             if (!soundEnabled) return;
             initAudio();
             if (!audioCtx) return;
-            
             try {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-
-                if (type === 'dice') {
-                    osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.1);
-                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                } else {
-                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.08);
-                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                }
+                osc.frequency.setValueAtTime(type === 'dice' ? 350 : 200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.1);
             } catch(e) {}
@@ -127,12 +114,11 @@
             soundBtn.textContent = `Ses: ${soundEnabled ? 'Açık' : 'Kapalı'}`;
         });
 
-        // 24 Hane Dizilimi (Standart)
         let board = new Array(24).fill(0);
         board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
         board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
 
-        let turn = 'white'; // 'white' veya 'black'
+        let turn = 'white';
         let dice = [];
         let selectedPoint = null;
 
@@ -140,10 +126,12 @@
             ctx.fillStyle = '#1c0e06';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = '#c89d4c';
+            // Tablalar
+            ctx.fillStyle = '#dcb35c';
             ctx.fillRect(40, 40, 380, 1220); 
             ctx.fillRect(480, 40, 380, 1220); 
 
+            // Orta Bar
             ctx.fillStyle = '#32180a';
             ctx.fillRect(420, 40, 60, 1220);
 
@@ -152,8 +140,8 @@
 
             for (let i = 0; i < 12; i++) {
                 let x = i < 6 ? 40 + i * triWidth : 480 + (i - 6) * triWidth;
-                let c1 = (i % 2 === 0) ? '#7a3e12' : '#e6be8a';
-                let c2 = (i % 2 === 0) ? '#e6be8a' : '#7a3e12';
+                let c1 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
+                let c2 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
                 ctx.fillStyle = i < 6 ? c1 : c2;
                 ctx.beginPath();
                 ctx.moveTo(x, 40);
@@ -165,8 +153,8 @@
 
             for (let i = 0; i < 12; i++) {
                 let x = i < 6 ? 480 + (5 - i) * triWidth : 40 + (11 - i) * triWidth;
-                let c1 = (i % 2 === 0) ? '#e6be8a' : '#7a3e12';
-                let c2 = (i % 2 === 0) ? '#7a3e12' : '#e6be8a';
+                let c1 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
+                let c2 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
                 ctx.fillStyle = i < 6 ? c1 : c2;
                 ctx.beginPath();
                 ctx.moveTo(x, 1260);
@@ -201,10 +189,10 @@
                     let grad = ctx.createRadialGradient(coords.x - 6, y - 6, 4, coords.x, y, 26);
                     if (count > 0) {
                         grad.addColorStop(0, '#ffffff');
-                        grad.addColorStop(1, '#cccccc');
+                        grad.addColorStop(1, '#d0d0d0');
                     } else {
-                        grad.addColorStop(0, '#444444');
-                        grad.addColorStop(1, '#111111');
+                        grad.addColorStop(0, '#333333');
+                        grad.addColorStop(1, '#0a0a0a');
                     }
 
                     ctx.beginPath();
@@ -212,7 +200,7 @@
                     ctx.fillStyle = grad;
                     ctx.fill();
                     ctx.lineWidth = selectedPoint === i ? 4 : 2;
-                    ctx.strokeStyle = selectedPoint === i ? '#58a6ff' : (count > 0 ? '#999' : '#000');
+                    ctx.strokeStyle = selectedPoint === i ? '#58a6ff' : (count > 0 ? '#aaa' : '#000');
                     ctx.stroke();
                 }
             }
@@ -236,6 +224,7 @@
             }
 
             const rect = canvas.getBoundingClientRect();
+            // Kesin oran hesaplama
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const clickX = (clientX - rect.left) * scaleX;
@@ -246,13 +235,17 @@
             for (let i = 0; i < 24; i++) {
                 let coords = getPointCoords(i);
                 let dst = Math.abs(clickX - coords.x);
-                if (dst < minDst && dst < 45) {
+                // Genişletilmiş dokunma alanı (55 piksel tolerans)
+                if (dst < minDst && dst < 55) {
                     minDst = dst;
                     clickedPoint = i;
                 }
             }
 
-            if (clickedPoint === -1) return;
+            if (clickedPoint === -1) {
+                statusEl.textContent = "Boş alana tıklandı!";
+                return;
+            }
 
             if (selectedPoint === null) {
                 if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
@@ -284,7 +277,7 @@
                         statusEl.textContent = `Kalan zar: ${dice.join(', ')}`;
                     }
                 } else {
-                    statusEl.textContent = "Geçersiz hamle (Zar uymuyor)!";
+                    statusEl.textContent = "Zar uymuyor!";
                 }
                 selectedPoint = null;
             }
