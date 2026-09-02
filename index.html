@@ -14,19 +14,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            min-height: 100dvh;
             overflow: hidden;
             touch-action: manipulation;
         }
         #game-wrapper {
             width: 100vw;
-            height: 100vh;
+            height: 100dvh;
             max-width: 480px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 4px 0;
         }
         .glass-hud {
             width: 96%;
@@ -36,29 +36,31 @@
             background: rgba(22, 27, 34, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 10px 14px;
-            border-radius: 10px;
+            padding: 6px 12px;
+            border-radius: 8px;
             border: 1px solid rgba(48, 54, 61, 0.8);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            flex-shrink: 0;
         }
         canvas {
             width: 100%;
-            max-height: 73vh;
+            max-height: 64dvh;
             aspect-ratio: 900 / 1300;
             background: #0f0703;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.95);
-            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.95);
+            border-radius: 8px;
             border: 2px solid #4a2812;
             cursor: pointer;
+            object-fit: contain;
         }
         .btn {
             background: #238636;
             color: white;
             border: none;
-            padding: 7px 14px;
-            font-size: 12px;
+            padding: 6px 12px;
+            font-size: 11px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
@@ -66,7 +68,7 @@
         }
         .btn:active { background: #2ea043; }
         .btn-sec { background: #30363d; }
-        #status-msg { color: #58a6ff; text-align: center; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #status-msg { color: #58a6ff; text-align: center; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -104,7 +106,6 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        // 55+ Parametre Kapsamlı Web Audio Sentezleyici
         function playSynthSound(type) {
             if (!soundEnabled) return;
             initAudioContext();
@@ -133,7 +134,6 @@
             soundToggle.textContent = `Ses: ${soundEnabled ? 'Açık' : 'Kapalı'}`;
         });
 
-        // 24 Haneli Tavla Matrisi ve Bar / Toplama Havuzları
         let board = new Array(24).fill(0);
         board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
         board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
@@ -147,7 +147,6 @@
         let doublingCube = 1;
         let gameActive = true;
 
-        // Anlık Pip-Count Hesaplayıcı (Parametre 12)
         function calculatePipCount() {
             let whitePips = 0, blackPips = 0;
             for (let i = 0; i < 24; i++) {
@@ -160,11 +159,9 @@
         }
 
         function drawMasterBoard() {
-            // Ahşap Dış Kasa ve Derinlik Gölgelemesi
             ctx.fillStyle = '#110602';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Kadife Çuha Zemin ve Damar Optimizasyonu
             ctx.fillStyle = '#1c150e';
             ctx.fillRect(30, 30, 400, 1240);
             ctx.fillRect(470, 30, 400, 1240);
@@ -173,11 +170,9 @@
             ctx.fillRect(40, 40, 380, 1220);
             ctx.fillRect(480, 40, 380, 1220);
 
-            // Orta Bar
             ctx.fillStyle = '#2b1407';
             ctx.fillRect(420, 40, 60, 1220);
 
-            // Üçgenler (Haneler - Dinamik Renk Matrisi)
             const triWidth = 63.3;
             const triHeight = 420;
 
@@ -210,7 +205,6 @@
         }
 
         function renderCheckersAndUIElements() {
-            // Seçili Hane İşaretçisi ve Z-Index Kaldırma Efekti
             if (selectedPoint !== null) {
                 let coords = getPointCoords(selectedPoint);
                 ctx.strokeStyle = '#58a6ff';
@@ -218,7 +212,6 @@
                 ctx.strokeRect(coords.x - 34, coords.isTop ? 35 : 1155, 68, 110);
             }
 
-            // Pulların 3D Gradyan Render Motoru
             for (let i = 0; i < 24; i++) {
                 let count = board[i];
                 if (count === 0) continue;
@@ -241,10 +234,9 @@
                 }
             }
 
-            // Pip-Count Durum Bilgisini HUD Güncelleme
             let pips = calculatePipCount();
-            scoreWhiteEl.textContent = `Beyaz (Pip: ${pips.white}): ${scores.white}`;
-            scoreBlackEl.textContent = `Siyah (Pip: ${pips.black}): ${scores.black}`;
+            scoreWhiteEl.textContent = `Beyaz (${pips.white}): ${scores.white}`;
+            scoreBlackEl.textContent = `Siyah (${pips.black}): ${scores.black}`;
             cubeDisplayEl.textContent = `Küp: ${doublingCube}`;
         }
 
@@ -255,10 +247,9 @@
             let d1 = Math.floor(Math.random() * 6) + 1;
             let d2 = Math.floor(Math.random() * 6) + 1;
             dice = d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
-            statusMsg.textContent = `Zar: ${dice.join(', ')} (${turn === 'white' ? 'Beyaz' : 'Siyah'})`;
+            statusMsg.textContent = `Zar: ${dice.join(', ')}`;
         });
 
-        // Dinamik Ölçeklendirme ve Dokunma Gecikme Optimizasyonu (Latency Fix)
         function handleBoardInteraction(clientX, clientY) {
             if (!gameActive || dice.length === 0) {
                 statusMsg.textContent = dice.length === 0 ? "Önce Zar Atın!" : "Oyun Bitti!";
@@ -287,9 +278,9 @@
             if (selectedPoint === null) {
                 if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
                     selectedPoint = clickedPoint;
-                    statusMsg.textContent = `Seçilen Hane: ${clickedPoint + 1}`;
+                    statusMsg.textContent = `Seçilen: ${clickedPoint + 1}`;
                 } else {
-                    statusMsg.textContent = "Kendi taşınızı seçmelisiniz!";
+                    statusMsg.textContent = "Kendi taşınızı seçin!";
                 }
             } else {
                 let diff = turn === 'white' ? (clickedPoint - selectedPoint) : (selectedPoint - clickedPoint);
@@ -309,10 +300,10 @@
                         turn = turn === 'white' ? 'black' : 'white';
                         statusMsg.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}`;
                     } else {
-                        statusMsg.textContent = `Kalan Zar: ${dice.join(', ')}`;
+                        statusMsg.textContent = `Kalan: ${dice.join(', ')}`;
                     }
                 } else {
-                    statusMsg.textContent = "Zar Uymuyor (Geçersiz Hamle)!";
+                    statusMsg.textContent = "Zar uymuyor!";
                 }
                 selectedPoint = null;
             }
