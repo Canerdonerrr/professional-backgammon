@@ -67,12 +67,52 @@
             ctx.scale(dpr, dpr);
         }
 
-        function render() {
+        function drawBoard() {
+            // Arka Plan / Çerçeve
             ctx.fillStyle = '#1c120c';
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             ctx.strokeStyle = '#d4af37';
             ctx.lineWidth = 8;
             ctx.strokeRect(10, 10, BASE_WIDTH - 20, BASE_HEIGHT - 20);
+
+            ctx.fillStyle = '#261710';
+            ctx.fillRect(20, 20, BASE_WIDTH - 40, BASE_HEIGHT - 40);
+
+            // Orta Bar
+            ctx.fillStyle = '#130b07';
+            ctx.fillRect(BASE_WIDTH / 2 - 40, 20, 80, BASE_HEIGHT - 40);
+
+            // Üçgenler (Haneler)
+            const triangleWidth = 76;
+            const triangleHeight = 280;
+
+            for (let i = 0; i < 12; i++) {
+                let x = 40 + i * triangleWidth;
+                if (i >= 6) x += 80; // Orta bar boşluğu
+
+                // Üst sıra
+                ctx.fillStyle = (i % 2 === 0) ? '#4a3319' : '#e6d5b8';
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x + triangleWidth / 2, 20 + triangleHeight);
+                ctx.lineTo(x + triangleWidth, 20);
+                ctx.closePath();
+                ctx.fill();
+
+                // Alt sıra
+                ctx.fillStyle = (i % 2 === 0) ? '#e6d5b8' : '#4a3319';
+                ctx.beginPath();
+                ctx.moveTo(x, BASE_HEIGHT - 20);
+                ctx.lineTo(x + triangleWidth / 2, BASE_HEIGHT - 20 - triangleHeight);
+                ctx.lineTo(x + triangleWidth, BASE_HEIGHT - 20);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+            drawBoard();
         }
 
         initCanvas();
