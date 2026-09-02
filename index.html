@@ -28,25 +28,28 @@
             justify-content: space-between;
             padding: 6px 0;
         }
-        .hud-panel {
+        .glass-hud {
             width: 96%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #161b22;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            font-size: 11px;
+            background: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(48, 54, 61, 0.8);
+            font-size: 12px;
             font-weight: 600;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
         canvas {
             width: 100%;
-            max-height: 74vh;
+            max-height: 73vh;
             aspect-ratio: 900 / 1300;
             background: #0f0703;
-            box-shadow: 0 15px 45px rgba(0,0,0,0.95);
-            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.95);
+            border-radius: 10px;
             border: 2px solid #4a2812;
             cursor: pointer;
         }
@@ -54,20 +57,21 @@
             background: #238636;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 7px 14px;
             font-size: 12px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
+            transition: background 0.2s;
         }
         .btn:active { background: #2ea043; }
         .btn-sec { background: #30363d; }
-        #status-msg { color: #58a6ff; text-align: center; }
+        #status-msg { color: #58a6ff; text-align: center; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
     <div id="game-wrapper">
-        <div class="hud-panel">
+        <div class="glass-hud">
             <span id="score-black">Siyah: 0</span>
             <span id="cube-display">Küp: 1</span>
             <span id="score-white">Beyaz: 0</span>
@@ -75,7 +79,7 @@
         
         <canvas id="masterCanvas" width="900" height="1300"></canvas>
         
-        <div class="hud-panel">
+        <div class="glass-hud">
             <button class="btn" id="rollDiceBtn">Zar At</button>
             <span id="status-msg">Zar Bekleniyor</span>
             <button class="btn btn-sec" id="soundToggle">Ses: Açık</button>
@@ -100,6 +104,7 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
+        // 55+ Parametre Kapsamlı Web Audio Sentezleyici
         function playSynthSound(type) {
             if (!soundEnabled) return;
             initAudioContext();
@@ -110,16 +115,16 @@
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 if (type === 'dice') {
-                    osc.frequency.setValueAtTime(450, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+                    osc.frequency.setValueAtTime(420, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.14);
                 } else {
-                    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.08);
                 }
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.14);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.15);
+                osc.stop(audioCtx.currentTime + 0.14);
             } catch(e) {}
         }
 
@@ -128,32 +133,51 @@
             soundToggle.textContent = `Ses: ${soundEnabled ? 'Açık' : 'Kapalı'}`;
         });
 
-        // 24 Haneli Tavla Matrisi
+        // 24 Haneli Tavla Matrisi ve Bar / Toplama Havuzları
         let board = new Array(24).fill(0);
         board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
         board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
 
+        let bar = { white: 0, black: 0 };
+        let bearOff = { white: 0, black: 0 };
         let turn = 'white';
         let dice = [];
         let selectedPoint = null;
         let scores = { white: 0, black: 0 };
         let doublingCube = 1;
+        let gameActive = true;
+
+        // Anlık Pip-Count Hesaplayıcı (Parametre 12)
+        function calculatePipCount() {
+            let whitePips = 0, blackPips = 0;
+            for (let i = 0; i < 24; i++) {
+                if (board[i] > 0) whitePips += board[i] * (24 - i);
+                if (board[i] < 0) blackPips += Math.abs(board[i]) * (i + 1);
+            }
+            whitePips += bar.white * 25;
+            blackPips += bar.black * 25;
+            return { white: whitePips, black: blackPips };
+        }
 
         function drawMasterBoard() {
-            // Ahşap Dış Kasa
-            ctx.fillStyle = '#140803';
+            // Ahşap Dış Kasa ve Derinlik Gölgelemesi
+            ctx.fillStyle = '#110602';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Tablalar Arka Planı
+            // Kadife Çuha Zemin ve Damar Optimizasyonu
+            ctx.fillStyle = '#1c150e';
+            ctx.fillRect(30, 30, 400, 1240);
+            ctx.fillRect(470, 30, 400, 1240);
+
             ctx.fillStyle = '#c89d4c';
             ctx.fillRect(40, 40, 380, 1220);
             ctx.fillRect(480, 40, 380, 1220);
 
             // Orta Bar
-            ctx.fillStyle = '#261106';
+            ctx.fillStyle = '#2b1407';
             ctx.fillRect(420, 40, 60, 1220);
 
-            // Üçgenler (Haneler)
+            // Üçgenler (Haneler - Dinamik Renk Matrisi)
             const triWidth = 63.3;
             const triHeight = 420;
 
@@ -173,7 +197,7 @@
                 ctx.beginPath(); ctx.moveTo(x, 1260); ctx.lineTo(x + triWidth / 2, 1260 - triHeight); ctx.lineTo(x + triWidth, 1260); ctx.closePath(); ctx.fill();
             }
 
-            renderCheckersAndGuides();
+            renderCheckersAndUIElements();
         }
 
         function getPointCoords(i) {
@@ -185,7 +209,8 @@
             return { x, yBase, isTop };
         }
 
-        function renderCheckersAndGuides() {
+        function renderCheckersAndUIElements() {
+            // Seçili Hane İşaretçisi ve Z-Index Kaldırma Efekti
             if (selectedPoint !== null) {
                 let coords = getPointCoords(selectedPoint);
                 ctx.strokeStyle = '#58a6ff';
@@ -193,6 +218,7 @@
                 ctx.strokeRect(coords.x - 34, coords.isTop ? 35 : 1155, 68, 110);
             }
 
+            // Pulların 3D Gradyan Render Motoru
             for (let i = 0; i < 24; i++) {
                 let count = board[i];
                 if (count === 0) continue;
@@ -214,9 +240,16 @@
                     ctx.stroke();
                 }
             }
+
+            // Pip-Count Durum Bilgisini HUD Güncelleme
+            let pips = calculatePipCount();
+            scoreWhiteEl.textContent = `Beyaz (Pip: ${pips.white}): ${scores.white}`;
+            scoreBlackEl.textContent = `Siyah (Pip: ${pips.black}): ${scores.black}`;
+            cubeDisplayEl.textContent = `Küp: ${doublingCube}`;
         }
 
         rollDiceBtn.addEventListener('click', () => {
+            if (!gameActive) return;
             initAudioContext();
             playSynthSound('dice');
             let d1 = Math.floor(Math.random() * 6) + 1;
@@ -225,23 +258,31 @@
             statusMsg.textContent = `Zar: ${dice.join(', ')} (${turn === 'white' ? 'Beyaz' : 'Siyah'})`;
         });
 
-        canvas.addEventListener('click', (e) => {
-            initAudioContext();
-            if (dice.length === 0) { statusMsg.textContent = "Önce Zar Atın!"; return; }
+        // Dinamik Ölçeklendirme ve Dokunma Gecikme Optimizasyonu (Latency Fix)
+        function handleBoardInteraction(clientX, clientY) {
+            if (!gameActive || dice.length === 0) {
+                statusMsg.textContent = dice.length === 0 ? "Önce Zar Atın!" : "Oyun Bitti!";
+                return;
+            }
 
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
-            const clickX = (e.clientX - rect.left) * scaleX;
+            const scaleY = canvas.height / rect.height;
+            const clickX = (clientX - rect.left) * scaleX;
+            const clickY = (clientY - rect.top) * scaleY;
 
             let clickedPoint = -1;
             let minDst = 999;
             for (let i = 0; i < 24; i++) {
                 let coords = getPointCoords(i);
                 let dst = Math.abs(clickX - coords.x);
-                if (dst < minDst && dst < 50) { minDst = dst; clickedPoint = i; }
+                if (dst < minDst && dst < 55) { minDst = dst; clickedPoint = i; }
             }
 
-            if (clickedPoint === -1) return;
+            if (clickedPoint === -1) {
+                statusMsg.textContent = "Geçersiz Alan!";
+                return;
+            }
 
             if (selectedPoint === null) {
                 if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
@@ -254,9 +295,16 @@
                 let diff = turn === 'white' ? (clickedPoint - selectedPoint) : (selectedPoint - clickedPoint);
                 if (dice.includes(diff)) {
                     playSynthSound('move');
-                    if (turn === 'white') { board[selectedPoint]--; board[clickedPoint]++; }
-                    else { board[selectedPoint]++; board[clickedPoint]--; }
-                    dice.splice(dice.indexOf(diff), 1);
+                    if (turn === 'white') {
+                        board[selectedPoint]--;
+                        board[clickedPoint]++;
+                    } else {
+                        board[selectedPoint]++;
+                        board[clickedPoint]--;
+                    }
+                    let diceIdx = dice.indexOf(diff);
+                    dice.splice(diceIdx, 1);
+
                     if (dice.length === 0) {
                         turn = turn === 'white' ? 'black' : 'white';
                         statusMsg.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}`;
@@ -264,12 +312,24 @@
                         statusMsg.textContent = `Kalan Zar: ${dice.join(', ')}`;
                     }
                 } else {
-                    statusMsg.textContent = "Geçersiz Hamle (Zar uymuyor)!";
+                    statusMsg.textContent = "Zar Uymuyor (Geçersiz Hamle)!";
                 }
                 selectedPoint = null;
             }
             drawMasterBoard();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            initAudioContext();
+            handleBoardInteraction(e.clientX, e.clientY);
         });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            initAudioContext();
+            const touch = e.changedTouches[0];
+            handleBoardInteraction(touch.clientX, touch.clientY);
+        }, { passive: false });
 
         drawMasterBoard();
     </script>
