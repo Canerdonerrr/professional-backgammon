@@ -24,6 +24,7 @@
             padding: 12px;
             background: #111827;
             border: 2px solid #334155;
+            cursor: pointer;
         }
         canvas { display: block; border-radius: 8px; background: #090d16; }
         .hud {
@@ -46,37 +47,35 @@
 <body>
     <div class="hud">
         <div>SIRA: <span id="turnIndicator">BEYAZ</span></div>
-        <div>ZARLAR: <span id="diceIndicator">- , -</span></div>
-        <div>BEYAZ PİP: <span id="whitePip">167</span></div>
-        <div>SİYAH PİP: <span id="blackPip">167</span></div>
+        <div>ZARLAR: <span id="diceIndicator">Atmak için tıklayın</span></div>
+        <div>SEÇİLEN HANE: <span id="selectedIndicator">Yok</span></div>
     </div>
     <div class="game-container">
-        <canvas id="boardCanvas"></canvas>
+        <canvas id="boardCanvas" width="1200" height="800"></canvas>
     </div>
     <script>
         const canvas = document.getElementById('boardCanvas');
         const ctx = canvas.getContext('2d');
         const BASE_WIDTH = 1200, BASE_HEIGHT = 800;
 
-        // 24 haneli tahta dizilimi (Pozitif: Beyaz, Negatif: Siyah)
-        const boardState = [
-             2,  0,  0,  0,  0, -5,  // 1 - 6
-             0, -3,  0,  0,  0,  5,  // 7 - 12
-            -5,  0,  0,  0,  3,  0,  // 13 - 18
-             5,  0,  0,  0,  0, -2   // 19 - 24
+        let boardState = [
+             2,  0,  0,  0,  0, -5, 
+             0, -3,  0,  0,  0,  5, 
+            -5,  0,  0,  0,  3,  0, 
+             5,  0,  0,  0,  0, -2 
         ];
+
+        let turn = 'white'; // 'white' veya 'black'
+        let selectedPoint = null;
 
         function initCanvas() {
             const dpr = window.devicePixelRatio || 1;
             canvas.width = BASE_WIDTH * dpr;
             canvas.height = BASE_HEIGHT * dpr;
-            canvas.style.width = `${BASE_WIDTH * 0.85}px`;
-            canvas.style.height = `${BASE_HEIGHT * 0.85}px`;
             ctx.scale(dpr, dpr);
         }
 
         function drawBoard() {
-            // Arka Plan / Çerçeve
             ctx.fillStyle = '#1c120c';
             ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
             ctx.strokeStyle = '#d4af37';
@@ -86,11 +85,9 @@
             ctx.fillStyle = '#261710';
             ctx.fillRect(20, 20, BASE_WIDTH - 40, BASE_HEIGHT - 40);
 
-            // Orta Bar
             ctx.fillStyle = '#130b07';
             ctx.fillRect(BASE_WIDTH / 2 - 40, 20, 80, BASE_HEIGHT - 40);
 
-            // Üçgenler (Haneler)
             const triangleWidth = 76;
             const triangleHeight = 280;
 
@@ -116,6 +113,32 @@
                 ctx.closePath();
                 ctx.fill();
             }
+
+            // Seçilen haneyi vurgula
+            if (selectedPoint !== null) {
+                highlightPoint(selectedPoint);
+            }
+        }
+
+        function highlightPoint(index) {
+            const triangleWidth = 76;
+            let col, x;
+            const isTop = index >= 12;
+            if (isTop) {
+                col = index - 12;
+                x = 40 + col * triangleWidth;
+                if (col >= 6) x += 80;
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, 20, triangleWidth, 320);
+            } else {
+                col = 11 - index;
+                x = 40 + col * triangleWidth;
+                if (col >= 6) x += 80;
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x, BASE_HEIGHT - 340, triangleWidth, 320);
+            }
         }
 
         function drawCheckers() {
@@ -124,28 +147,21 @@
 
             boardState.forEach((count, index) => {
                 if (count === 0) return;
-
-                let col, row, x, y;
+                let col, x, y;
                 const isTop = index >= 12;
 
                 if (isTop) {
-                    // Üst yarı (12 ila 23 indexleri)
-                    let realIndex = index - 12; // 0'dan 11'e
-                    col = realIndex;
+                    col = index - 12;
                     x = 40 + col * triangleWidth + triangleWidth / 2;
                     if (col >= 6) x += 80;
-
                     for (let j = 0; j < Math.abs(count); j++) {
                         y = 20 + radius + j * (radius * 1.6);
                         renderSingleChecker(x, y, count > 0 ? 'white' : 'black', radius);
                     }
                 } else {
-                    // Alt yarı (0 ila 11 indexleri)
-                    let realIndex = 11 - index; // Sağdan sola dizilim için
-                    col = realIndex;
+                    col = 11 - index;
                     x = 40 + col * triangleWidth + triangleWidth / 2;
                     if (col >= 6) x += 80;
-
                     for (let j = 0; j < Math.abs(count); j++) {
                         y = BASE_HEIGHT - 20 - radius - j * (radius * 1.6);
                         renderSingleChecker(x, y, count > 0 ? 'white' : 'black', radius);
@@ -158,13 +174,9 @@
             ctx.save();
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 4;
-
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
-            
-            // Profesyonel Gradyan Dolgu
             let grad = ctx.createRadialGradient(x - 8, y - 8, 5, x, y, radius);
             if (color === 'white') {
                 grad.addColorStop(0, '#ffffff');
@@ -175,7 +187,6 @@
             }
             ctx.fillStyle = grad;
             ctx.fill();
-            
             ctx.strokeStyle = color === 'white' ? '#94a3b8' : '#1e293b';
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -187,6 +198,57 @@
             drawBoard();
             drawCheckers();
         }
+
+        // Tıklama Algılama (Hane Seçimi)
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = BASE_WIDTH / rect.width;
+            const scaleY = BASE_HEIGHT / rect.height;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+
+            // Orta bar kontrolü
+            if (mouseX >= BASE_WIDTH / 2 - 40 && mouseX <= BASE_WIDTH / 2 + 40) return;
+
+            const triangleWidth = 76;
+            let clickedIndex = -1;
+
+            if (mouseY < BASE_HEIGHT / 2) {
+                // Üst sıra (12 - 23)
+                let adjustedX = mouseX > BASE_WIDTH / 2 ? mouseX - 80 : mouseX;
+                let col = Math.floor((adjustedX - 40) / triangleWidth);
+                if (col >= 0 && col < 12) clickedIndex = 12 + col;
+            } else {
+                // Alt sıra (0 - 11)
+                let adjustedX = mouseX > BASE_WIDTH / 2 ? mouseX - 80 : mouseX;
+                let col = Math.floor((adjustedX - 40) / triangleWidth);
+                if (col >= 0 && col < 12) clickedIndex = 11 - col;
+            }
+
+            if (clickedIndex !== -1) {
+                if (selectedPoint === null) {
+                    if ((turn === 'white' && boardState[clickedIndex] > 0) || 
+                        (turn === 'black' && boardState[clickedIndex] < 0)) {
+                        selectedPoint = clickedIndex;
+                        document.getElementById('selectedIndicator').innerText = clickedIndex + 1;
+                    }
+                } else {
+                    // Basit taşıma simülasyonu
+                    if (turn === 'white' && boardState[selectedPoint] > 0) {
+                        boardState[selectedPoint] -= 1;
+                        boardState[clickedIndex] += 1;
+                    } else if (turn === 'black' && boardState[selectedPoint] < 0) {
+                        boardState[selectedPoint] += 1;
+                        boardState[clickedIndex] -= 1;
+                    }
+                    selectedPoint = null;
+                    document.getElementById('selectedIndicator').innerText = "Yok";
+                    turn = turn === 'white' ? 'black' : 'white';
+                    document.getElementById('turnIndicator').innerText = turn.toUpperCase();
+                }
+                render();
+            }
+        });
 
         initCanvas();
         render();
