@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Professional Backgammon</title>
+    <title>Professional Backgammon - Pro Edition</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -25,82 +25,159 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            padding: 10px 0;
             position: relative;
         }
         canvas {
             width: 100%;
-            height: 100%;
+            height: 78vh;
             object-fit: contain;
             background: #1a0f08;
             box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            border-radius: 6px;
+            cursor: pointer;
         }
+        #ui-panel {
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #161b22;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn:active { background: #2ea043; }
+        #status { font-size: 14px; font-weight: 500; color: #8b949e; }
+        #dice-display { font-size: 18px; font-weight: bold; color: #58a6ff; letter-spacing: 2px; }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <canvas id="backgammonCanvas" width="900" height="1400"></canvas>
+        <div id="ui-panel">
+            <button class="btn" id="rollBtn">Zar At</button>
+            <div id="dice-display">- -</div>
+            <div id="status">Sıra: Beyaz</div>
+        </div>
+        <canvas id="backgammonCanvas" width="900" height="1300"></canvas>
     </div>
 
     <script>
         const canvas = document.getElementById('backgammonCanvas');
         const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const diceEl = document.getElementById('dice-display');
+        const rollBtn = document.getElementById('rollBtn');
+
+        // Basitleştirilmiş tavla state (24 hane, index 0-23)
+        // Pozitif: Beyaz, Negatif: Siyah pullar
+        let board = new Array(24).fill(0);
+        // Standart başlangıç dizilimi
+        board[0] = -2;  board[5] = 5;   board[7] = 3;   board[11] = -5;
+        board[12] = 5;  board[16] = -3; board[18] = -5; board[23] = 2;
+
+        let turn = 'white'; // 'white' veya 'black'
+        let dice = [];
+        let selectedPoint = null;
 
         function drawBoard() {
-            // Tahta Dış Çerçevesi
             ctx.fillStyle = '#2c160b';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Sağ ve Sol Tablalar (Zemin)
             ctx.fillStyle = '#dcb35c';
-            // Sol Tabla
-            ctx.fillRect(40, 40, 380, 1320);
-            // Sağ Tabla
-            ctx.fillRect(480, 40, 380, 1320);
+            ctx.fillRect(40, 40, 380, 1220); // Sol tabla
+            ctx.fillRect(480, 40, 380, 1220); // Sağ tabla
 
-            // Orta Bar
             ctx.fillStyle = '#4a2511';
-            ctx.fillRect(420, 40, 60, 1320);
+            ctx.fillRect(420, 40, 60, 1220); // Orta bar
 
-            // Üçgenleri Çizme Fonksiyonu
-            function drawTriangle(x, width, height, topDown, color1, color2, index) {
-                ctx.fillStyle = (index % 2 === 0) ? color1 : color2;
+            // Üçgenler
+            const triWidth = 63.3;
+            const triHeight = 420;
+
+            for (let i = 0; i < 12; i++) {
+                let x = i < 6 ? 40 + i * triWidth : 480 + (i - 6) * triWidth;
+                let topDown = true;
+                let c1 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
+                let c2 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
+                let color = i < 6 ? c1 : c2;
+
+                ctx.fillStyle = color;
                 ctx.beginPath();
-                if (topDown) {
-                    ctx.moveTo(x, 40);
-                    ctx.lineTo(x + width / 2, 40 + height);
-                    ctx.lineTo(x + width, 40);
-                } else {
-                    ctx.moveTo(x, 1360);
-                    ctx.lineTo(x + width / 2, 1360 - height);
-                    ctx.lineTo(x + width, 1360);
-                }
+                ctx.moveTo(x, 40);
+                ctx.lineTo(x + triWidth / 2, 40 + triHeight);
+                ctx.lineTo(x + triWidth, 40);
                 ctx.closePath();
                 ctx.fill();
             }
 
-            const triWidth = 63.3;
-            const triHeight = 450;
-            const c1 = '#8b4513';
-            const c2 = '#f4a460';
+            for (let i = 0; i < 12; i++) {
+                let x = i < 6 ? 480 + (5 - i) * triWidth : 40 + (11 - i) * triWidth;
+                let c1 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
+                let c2 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
+                let color = i < 6 ? c1 : c2;
 
-            // Sol üst 6 üçgen
-            for (let i = 0; i < 6; i++) {
-                drawTriangle(40 + i * triWidth, triWidth, triHeight, true, c1, c2, i);
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x, 1260);
+                ctx.lineTo(x + triWidth / 2, 1260 - triHeight);
+                ctx.lineTo(x + triWidth, 1260);
+                ctx.closePath();
+                ctx.fill();
             }
-            // Sağ üst 6 üçgen
-            for (let i = 0; i < 6; i++) {
-                drawTriangle(480 + i * triWidth, triWidth, triHeight, true, c2, c1, i);
-            }
-            // Sol alt 6 üçgen
-            for (let i = 0; i < 6; i++) {
-                drawTriangle(40 + i * triWidth, triWidth, triHeight, false, c2, c1, i);
-            }
-            // Sağ alt 6 üçgen
-            for (let i = 0; i < 6; i++) {
-                drawTriangle(480 + i * triWidth, triWidth, triHeight, false, c1, c2, i);
+
+            // Pulları Çiz
+            drawCheckers();
+        }
+
+        function drawCheckers() {
+            // Hane koordinat haritalaması (0'dan 23'e)
+            // Detaylı pulları hanelere yerleştirme
+            for (let i = 0; i < 24; i++) {
+                let count = board[i];
+                if (count === 0) continue;
+
+                let isTop = i < 12;
+                let xIdx = i < 6 ? i : (i < 12 ? i : (i < 18 ? 17 - i : 23 - i));
+                // Basitleştirilmiş örnek görselleştirme konumu
+                let x = 40 + (i % 6) * 63.3 + 31.6;
+                if (i >= 6 && i < 12) x = 480 + ((i - 6) % 6) * 63.3 + 31.6;
+                if (i >= 12 && i < 18) x = 480 + (5 - (i - 12)) * 63.3 + 31.6;
+                if (i >= 18) x = 40 + (5 - (i - 18)) * 63.3 + 31.6;
+
+                let absCount = Math.abs(count);
+                for (let j = 0; j < Math.min(absCount, 5); j++) {
+                    let y = isTop ? (70 + j * 55) : (1230 - j * 55);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 26, 0, Math.PI * 2);
+                    ctx.fillStyle = count > 0 ? '#f5f5f5' : '#1a1a1a';
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = count > 0 ? '#d4d4d4' : '#444';
+                    ctx.stroke();
+                }
             }
         }
+
+        rollBtn.addEventListener('click', () => {
+            let d1 = Math.floor(Math.random() * 6) + 1;
+            let d2 = Math.floor(Math.random() * 6) + 1;
+            dice = d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
+            diceEl.textContent = dice.join(' - ');
+            statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'} (Oyna)`;
+        });
 
         drawBoard();
     </script>
