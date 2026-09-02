@@ -36,6 +36,7 @@
             box-shadow: 0 12px 35px rgba(0,0,0,0.95);
             border-radius: 8px;
             border: 2px solid #3a2212;
+            cursor: pointer;
         }
         #ui-panel {
             width: 96%;
@@ -69,7 +70,7 @@
             <button class="btn" id="rollBtn">Zar At</button>
             <div id="dice-display">- -</div>
             <button class="btn btn-sec" id="soundBtn">Ses: Açık</button>
-            <div id="status">Önce Zar Atın</div>
+            <div id="status">Zar Atarak Başlayın</div>
         </div>
         <canvas id="backgammonCanvas" width="900" height="1300"></canvas>
     </div>
@@ -83,33 +84,42 @@
         const soundBtn = document.getElementById('soundBtn');
 
         let soundEnabled = true;
+        let audioCtx = null;
 
-        // Web Audio API ile profesyonel ses efektleri (Zar ve Pul sesleri)
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
         function playSound(type) {
             if (!soundEnabled) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            initAudio();
+            if (!audioCtx) return;
             
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-            if (type === 'dice') {
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                if (type === 'dice') {
+                    osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                } else {
+                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                }
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.08);
-            } else if (type === 'move') {
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.05);
-            }
+                osc.stop(audioCtx.currentTime + 0.1);
+            } catch(e) {}
         }
 
         soundBtn.addEventListener('click', () => {
@@ -117,31 +127,26 @@
             soundBtn.textContent = `Ses: ${soundEnabled ? 'Açık' : 'Kapalı'}`;
         });
 
-        // 24 hane + Kırılan taşlar (Bar)
+        // 24 Hane Dizilimi (Standart)
         let board = new Array(24).fill(0);
         board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
         board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
-        
-        let bar = { white: 0, black: 0 };
-        let turn = 'white'; 
+
+        let turn = 'white'; // 'white' veya 'black'
         let dice = [];
         let selectedPoint = null;
 
         function drawBoard() {
-            // Ahşap dış çerçeve
             ctx.fillStyle = '#1c0e06';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // İç tablalar (Kadife doku tonu)
             ctx.fillStyle = '#c89d4c';
             ctx.fillRect(40, 40, 380, 1220); 
             ctx.fillRect(480, 40, 380, 1220); 
 
-            // Orta Bar (Derinlik efekti)
             ctx.fillStyle = '#32180a';
             ctx.fillRect(420, 40, 60, 1220);
 
-            // Üçgenleri Çiz (3D Gölgeli)
             const triWidth = 63.3;
             const triHeight = 420;
 
@@ -172,7 +177,6 @@
             }
 
             drawCheckers();
-            drawBarCheckers();
         }
 
         function getPointCoords(i) {
@@ -194,7 +198,6 @@
                 for (let j = 0; j < Math.min(absCount, 5); j++) {
                     let y = coords.isTop ? (coords.yBase + j * 55) : (coords.yBase - j * 55);
                     
-                    // 3D Pul Efekti (Gradient)
                     let grad = ctx.createRadialGradient(coords.x - 6, y - 6, 4, coords.x, y, 26);
                     if (count > 0) {
                         grad.addColorStop(0, '#ffffff');
@@ -215,21 +218,8 @@
             }
         }
 
-        function drawBarCheckers() {
-            // Kırılan taşlar ortada gösterilir
-            if (bar.white > 0) {
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath(); ctx.arc(450, 600, 26, 0, Math.PI * 2); ctx.fill();
-                ctx.stroke();
-            }
-            if (bar.black > 0) {
-                ctx.fillStyle = '#111111';
-                ctx.beginPath(); ctx.arc(450, 700, 26, 0, Math.PI * 2); ctx.fill();
-                ctx.stroke();
-            }
-        }
-
         rollBtn.addEventListener('click', () => {
+            initAudio();
             playSound('dice');
             let d1 = Math.floor(Math.random() * 6) + 1;
             let d2 = Math.floor(Math.random() * 6) + 1;
@@ -239,6 +229,7 @@
         });
 
         function handleInteraction(clientX, clientY) {
+            initAudio();
             if (dice.length === 0) {
                 statusEl.textContent = "Önce Zar Atın!";
                 return;
@@ -251,11 +242,13 @@
             const clickY = (clientY - rect.top) * scaleY;
 
             let clickedPoint = -1;
+            let minDst = 999;
             for (let i = 0; i < 24; i++) {
                 let coords = getPointCoords(i);
-                if (Math.abs(clickX - coords.x) < 40) {
+                let dst = Math.abs(clickX - coords.x);
+                if (dst < minDst && dst < 45) {
+                    minDst = dst;
                     clickedPoint = i;
-                    break;
                 }
             }
 
@@ -265,6 +258,8 @@
                 if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
                     selectedPoint = clickedPoint;
                     statusEl.textContent = `Seçilen: ${clickedPoint + 1}. Hedef seç.`;
+                } else {
+                    statusEl.textContent = "Kendi taşınızı seçin!";
                 }
             } else {
                 let diff = turn === 'white' ? (clickedPoint - selectedPoint) : (selectedPoint - clickedPoint);
@@ -284,12 +279,12 @@
                     
                     if (dice.length === 0) {
                         turn = turn === 'white' ? 'black' : 'white';
-                        statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}. Zar at.`;
+                        statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}`;
                     } else {
                         statusEl.textContent = `Kalan zar: ${dice.join(', ')}`;
                     }
                 } else {
-                    statusEl.textContent = "Geçersiz hamle!";
+                    statusEl.textContent = "Geçersiz hamle (Zar uymuyor)!";
                 }
                 selectedPoint = null;
             }
