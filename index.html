@@ -16,27 +16,25 @@
             justify-content: center;
             min-height: 100vh;
             overflow: hidden;
+            touch-action: manipulation;
         }
         #game-container {
             width: 100vw;
             height: 100vh;
             max-width: 500px;
-            max-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 0;
-            position: relative;
+            padding: 8px 0;
         }
         canvas {
             width: 100%;
-            height: 78vh;
+            height: 80vh;
             object-fit: contain;
             background: #1a0f08;
             box-shadow: 0 10px 30px rgba(0,0,0,0.9);
             border-radius: 6px;
-            cursor: pointer;
         }
         #ui-panel {
             width: 95%;
@@ -44,7 +42,7 @@
             justify-content: space-between;
             align-items: center;
             background: #161b22;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 8px;
             border: 1px solid #30363d;
         }
@@ -52,15 +50,15 @@
             background: #238636;
             color: white;
             border: none;
-            padding: 10px 18px;
-            font-size: 15px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
         }
         .btn:active { background: #2ea043; }
-        #status { font-size: 13px; font-weight: 500; color: #8b949e; text-align: right; }
-        #dice-display { font-size: 16px; font-weight: bold; color: #58a6ff; letter-spacing: 2px; }
+        #status { font-size: 12px; font-weight: 500; color: #8b949e; text-align: right; }
+        #dice-display { font-size: 15px; font-weight: bold; color: #58a6ff; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -80,13 +78,11 @@
         const diceEl = document.getElementById('dice-display');
         const rollBtn = document.getElementById('rollBtn');
 
-        // 24 hane (0 - 23). Pozitif: Beyaz, Negatif: Siyah
         let board = new Array(24).fill(0);
-        // Standart Tavla Yerleşimi
         board[0] = 2;   board[5] = -5;  board[7] = -3;  board[11] = 5;
         board[12] = -5; board[16] = 3;  board[18] = 5;  board[23] = -2;
 
-        let turn = 'white'; // 'white' (pozitif) veya 'black' (negatif)
+        let turn = 'white'; 
         let dice = [];
         let selectedPoint = null;
 
@@ -95,13 +91,12 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = '#dcb35c';
-            ctx.fillRect(40, 40, 380, 1220); // Sol tabla
-            ctx.fillRect(480, 40, 380, 1220); // Sağ tabla
+            ctx.fillRect(40, 40, 380, 1220); 
+            ctx.fillRect(480, 40, 380, 1220); 
 
             ctx.fillStyle = '#4a2511';
-            ctx.fillRect(420, 40, 60, 1220); // Orta bar
+            ctx.fillRect(420, 40, 60, 1220); 
 
-            // Üçgenler
             const triWidth = 63.3;
             const triHeight = 420;
 
@@ -109,9 +104,7 @@
                 let x = i < 6 ? 40 + i * triWidth : 480 + (i - 6) * triWidth;
                 let c1 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
                 let c2 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
-                let color = i < 6 ? c1 : c2;
-
-                ctx.fillStyle = color;
+                ctx.fillStyle = i < 6 ? c1 : c2;
                 ctx.beginPath();
                 ctx.moveTo(x, 40);
                 ctx.lineTo(x + triWidth / 2, 40 + triHeight);
@@ -124,9 +117,7 @@
                 let x = i < 6 ? 480 + (5 - i) * triWidth : 40 + (11 - i) * triWidth;
                 let c1 = (i % 2 === 0) ? '#f4a460' : '#8b4513';
                 let c2 = (i % 2 === 0) ? '#8b4513' : '#f4a460';
-                let color = i < 6 ? c1 : c2;
-
-                ctx.fillStyle = color;
+                ctx.fillStyle = i < 6 ? c1 : c2;
                 ctx.beginPath();
                 ctx.moveTo(x, 1260);
                 ctx.lineTo(x + triWidth / 2, 1260 - triHeight);
@@ -140,19 +131,10 @@
 
         function getPointCoords(i) {
             let x, yBase, isTop = i < 12;
-            if (i < 6) {
-                x = 40 + i * 63.3 + 31.6;
-                yBase = isTop ? 70 : 1230;
-            } else if (i < 12) {
-                x = 480 + (i - 6) * 63.3 + 31.6;
-                yBase = isTop ? 70 : 1230;
-            } else if (i < 18) {
-                x = 480 + (17 - i) * 63.3 + 31.6;
-                yBase = isTop ? 70 : 1230;
-            } else {
-                x = 40 + (23 - i) * 63.3 + 31.6;
-                yBase = isTop ? 70 : 1230;
-            }
+            if (i < 6) { x = 40 + i * 63.3 + 31.6; yBase = isTop ? 70 : 1230; }
+            else if (i < 12) { x = 480 + (i - 6) * 63.3 + 31.6; yBase = isTop ? 70 : 1230; }
+            else if (i < 18) { x = 480 + (17 - i) * 63.3 + 31.6; yBase = isTop ? 70 : 1230; }
+            else { x = 40 + (23 - i) * 63.3 + 31.6; yBase = isTop ? 70 : 1230; }
             return { x, yBase, isTop };
         }
 
@@ -160,19 +142,17 @@
             for (let i = 0; i < 24; i++) {
                 let count = board[i];
                 if (count === 0) continue;
-
                 let coords = getPointCoords(i);
                 let absCount = Math.abs(count);
 
                 for (let j = 0; j < Math.min(absCount, 5); j++) {
                     let y = coords.isTop ? (coords.yBase + j * 55) : (coords.yBase - j * 55);
-                    
                     ctx.beginPath();
                     ctx.arc(coords.x, y, 26, 0, Math.PI * 2);
                     ctx.fillStyle = count > 0 ? '#f5f5f5' : '#1a1a1a';
                     ctx.fill();
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = (selectedPoint === i) ? '#58a6ff' : (count > 0 ? '#d4d4d4' : '#444');
+                    ctx.lineWidth = selectedPoint === i ? 4 : 2;
+                    ctx.strokeStyle = selectedPoint === i ? '#58a6ff' : (count > 0 ? '#d4d4d4' : '#444');
                     ctx.stroke();
                 }
             }
@@ -186,8 +166,8 @@
             statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}`;
         });
 
-        // Dokunma / Tıklama ile Pulları Seçme ve Taşıma
-        canvas.addEventListener('click', (e) => {
+        // Hem touch hem click olayını kusursuz yakalayan handler
+        function handleInteraction(clientX, clientY) {
             if (dice.length === 0) {
                 statusEl.textContent = "Önce Zar Atın!";
                 return;
@@ -196,14 +176,14 @@
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            const clickX = (e.clientX - rect.left) * scaleX;
-            const clickY = (e.clientY - rect.top) * scaleY;
+            const clickX = (clientX - rect.left) * scaleX;
+            const clickY = (clientY - rect.top) * scaleY;
 
-            // Hangi haneye tıklandığını bul
             let clickedPoint = -1;
             for (let i = 0; i < 24; i++) {
                 let coords = getPointCoords(i);
-                if (Math.abs(clickX - coords.x) < 32) {
+                // Dokunma payını genişlettik (hassasiyet artırıldı)
+                if (Math.abs(clickX - coords.x) < 40) {
                     clickedPoint = i;
                     break;
                 }
@@ -212,17 +192,14 @@
             if (clickedPoint === -1) return;
 
             if (selectedPoint === null) {
-                // Pul seç
                 if ((turn === 'white' && board[clickedPoint] > 0) || (turn === 'black' && board[clickedPoint] < 0)) {
                     selectedPoint = clickedPoint;
-                    statusEl.textContent = `Seçilen hane: ${clickedPoint + 1}. Hedef seçin.`;
+                    statusEl.textContent = `Seçilen: ${clickedPoint + 1}. Hedef seç.`;
                 }
             } else {
-                // Hamle yapma kontrolü (Basitleştirilmiş mesafe kontrolü)
                 let diff = turn === 'white' ? (clickedPoint - selectedPoint) : (selectedPoint - clickedPoint);
                 
                 if (dice.includes(diff)) {
-                    // Pulları hareket ettir
                     if (turn === 'white') {
                         board[selectedPoint]--;
                         board[clickedPoint]++;
@@ -230,24 +207,33 @@
                         board[selectedPoint]++;
                         board[clickedPoint]--;
                     }
-                    // Kullanılan zarı sil
                     let idx = dice.indexOf(diff);
                     dice.splice(idx, 1);
                     diceEl.textContent = dice.length > 0 ? dice.join(' - ') : '- -';
                     
                     if (dice.length === 0) {
                         turn = turn === 'white' ? 'black' : 'white';
-                        statusEl.textContent = `Sıra değişti: ${turn === 'white' ? 'Beyaz' : 'Siyah'}. Zar atın.`;
+                        statusEl.textContent = `Sıra: ${turn === 'white' ? 'Beyaz' : 'Siyah'}. Zar at.`;
                     } else {
-                        statusEl.textContent = `Hamle başarılı. Kalan zar: ${dice.join(', ')}`;
+                        statusEl.textContent = `Kalan zar: ${dice.join(', ')}`;
                     }
                 } else {
-                    statusEl.textContent = "Geçersiz hamle (Zar uymuyor)!";
+                    statusEl.textContent = "Geçersiz hamle!";
                 }
                 selectedPoint = null;
             }
             drawBoard();
+        }
+
+        canvas.addEventListener('click', (e) => {
+            handleInteraction(e.clientX, e.clientY);
         });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            handleInteraction(touch.clientX, touch.clientY);
+        }, { passive: false });
 
         drawBoard();
     </script>
